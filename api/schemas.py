@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
-from datetime import date
+from datetime import date as date_type
 
 class UserBase(BaseModel):
     name: str
@@ -63,7 +63,7 @@ class TransactionBase(BaseModel):
     description: str
     amount: float
     type: str # 'income', 'expense'
-    date: date
+    date: date_type
     payer: str
     category_id: int
     account_id: Optional[int] = None
@@ -79,7 +79,7 @@ class TransactionUpdate(BaseModel):
     description: Optional[str] = None
     amount: Optional[float] = None
     type: Optional[str] = None
-    date: Optional[date] = None
+    date: Optional[date_type] = None
     payer: Optional[str] = None
     category_id: Optional[int] = None
     account_id: Optional[int] = None
