@@ -16,6 +16,17 @@ class Category(Base):
     type = Column(String) # 'income', 'expense'
     color = Column(String, default="#cccccc")
 
+class Account(Base):
+    __tablename__ = "accounts"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    color = Column(String, default="#cccccc")
+
+class PaymentMethod(Base):
+    __tablename__ = "payment_methods"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+
 class Transaction(Base):
     __tablename__ = "transactions"
     id = Column(Integer, primary_key=True, index=True)
@@ -29,6 +40,12 @@ class Transaction(Base):
     
     category_id = Column(Integer, ForeignKey("categories.id"))
     category = relationship("Category")
+    
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
+    account = relationship("Account")
+    
+    payment_method_id = Column(Integer, ForeignKey("payment_methods.id"), nullable=True)
+    payment_method = relationship("PaymentMethod")
     
     user_id = Column(Integer, ForeignKey("users.id"))
     

@@ -1,5 +1,5 @@
 import { useAuth } from './AuthContext';
-import { LogOut, Home, PieChart, Wallet, CreditCard, Menu } from 'lucide-react';
+import { LogOut, Home, PieChart, Wallet, CreditCard, Menu, Settings as SettingsIcon } from 'lucide-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 
@@ -11,7 +11,7 @@ export default function Layout() {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Transações', href: '/transacoes', icon: CreditCard },
-    { name: 'Categorias', href: '/categorias', icon: PieChart },
+    { name: 'Configurações', href: '/configuracoes', icon: SettingsIcon },
   ];
 
   return (

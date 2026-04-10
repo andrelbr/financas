@@ -16,6 +16,7 @@ def verify_password(plain_password, hashed_password):
 def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
 
+# Categories
 def get_categories(db: Session):
     return db.query(models.Category).all()
 
@@ -41,6 +42,64 @@ def delete_category(db: Session, category_id: int):
     if not db_category:
         return False
     db.delete(db_category)
+    db.commit()
+    return True
+
+# Accounts
+def get_accounts(db: Session):
+    return db.query(models.Account).all()
+
+def create_account(db: Session, account: schemas.AccountCreate):
+    db_account = models.Account(**account.model_dump())
+    db.add(db_account)
+    db.commit()
+    db.refresh(db_account)
+    return db_account
+
+def update_account(db: Session, account_id: int, account: schemas.AccountUpdate):
+    db_account = db.query(models.Account).filter(models.Account.id == account_id).first()
+    if not db_account:
+        return None
+    for key, value in account.model_dump(exclude_unset=True).items():
+        setattr(db_account, key, value)
+    db.commit()
+    db.refresh(db_account)
+    return db_account
+
+def delete_account(db: Session, account_id: int):
+    db_account = db.query(models.Account).filter(models.Account.id == account_id).first()
+    if not db_account:
+        return False
+    db.delete(db_account)
+    db.commit()
+    return True
+
+# Payment Methods
+def get_payment_methods(db: Session):
+    return db.query(models.PaymentMethod).all()
+
+def create_payment_method(db: Session, method: schemas.PaymentMethodCreate):
+    db_method = models.PaymentMethod(**method.model_dump())
+    db.add(db_method)
+    db.commit()
+    db.refresh(db_method)
+    return db_method
+
+def update_payment_method(db: Session, method_id: int, method: schemas.PaymentMethodUpdate):
+    db_method = db.query(models.PaymentMethod).filter(models.PaymentMethod.id == method_id).first()
+    if not db_method:
+        return None
+    for key, value in method.model_dump(exclude_unset=True).items():
+        setattr(db_method, key, value)
+    db.commit()
+    db.refresh(db_method)
+    return db_method
+
+def delete_payment_method(db: Session, method_id: int):
+    db_method = db.query(models.PaymentMethod).filter(models.PaymentMethod.id == method_id).first()
+    if not db_method:
+        return False
+    db.delete(db_method)
     db.commit()
     return True
 

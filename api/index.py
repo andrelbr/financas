@@ -59,6 +59,19 @@ def on_startup():
             db.add(db_cat)
         db.commit()
     
+    # Initialize default accounts
+    if not db.query(models.Account).first():
+        db.add(models.Account(name="Carteira André", color="#4ade80"))
+        db.add(models.Account(name="Nubank Sofia", color="#a855f7"))
+        db.add(models.Account(name="Itaú Casal", color="#f97316"))
+        db.commit()
+
+    # Initialize default payment methods
+    if not db.query(models.PaymentMethod).first():
+        for m in ["Pix", "Crédito", "Débito", "Dinheiro"]:
+            db.add(models.PaymentMethod(name=m))
+        db.commit()
+    
     db.close()
 
 
@@ -100,10 +113,52 @@ def update_category(category_id: int, category: schemas.CategoryUpdate, db: Sess
 def delete_category(category_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     # Check if category is used
     if db.query(models.Transaction).filter(models.Transaction.category_id == category_id).first():
+        # Better than raising 400, we could allow it but the UI should warn. 
+        # For now, let's keep it safe.
         raise HTTPException(status_code=400, detail="Cannot delete category in use by transactions")
     if not crud.delete_category(db, category_id):
         raise HTTPException(status_code=404, detail="Category not found")
     return {"message": "Category deleted"}
+
+# Account Routes
+@app.get("/api/accounts", response_model=list[schemas.AccountOut])
+def read_accounts(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return crud.get_accounts(db)
+
+@app.post("/api/accounts", response_model=schemas.AccountOut)
+def create_account(account: schemas.AccountCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return crud.create_account(db, account)
+
+@app.put("/api/accounts/{account_id}", response_model=schemas.AccountOut)
+def update_account(account_id: int, account: schemas.AccountUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    db_account = crud.update_account(db, account_id, account)
+    if not db_account: raise HTTPException(status_code=404, detail="Account not found")
+    return db_account
+
+@app.delete("/api/accounts/{account_id}")
+def delete_account(account_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    if not crud.delete_account(db, account_id): raise HTTPException(status_code=404, detail="Account not found")
+    return {"message": "Account deleted"}
+
+# Payment Method Routes
+@app.get("/api/payment-methods", response_model=list[schemas.PaymentMethodOut])
+def read_payment_methods(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return crud.get_payment_methods(db)
+
+@app.post("/api/payment-methods", response_model=schemas.PaymentMethodOut)
+def create_payment_method(method: schemas.PaymentMethodCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return crud.create_payment_method(db, method)
+
+@app.put("/api/payment-methods/{method_id}", response_model=schemas.PaymentMethodOut)
+def update_payment_method(method_id: int, method: schemas.PaymentMethodUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    db_method = crud.update_payment_method(db, method_id, method)
+    if not db_method: raise HTTPException(status_code=404, detail="Method not found")
+    return db_method
+
+@app.delete("/api/payment-methods/{method_id}")
+def delete_payment_method(method_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    if not crud.delete_payment_method(db, method_id): raise HTTPException(status_code=404, detail="Method not found")
+    return {"message": "Payment method deleted"}
 
 @app.post("/api/transactions", response_model=schemas.TransactionOut)
 def create_transaction(transaction: schemas.TransactionCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):

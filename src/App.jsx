@@ -4,7 +4,7 @@ import Login from './Login';
 import Layout from './Layout';
 import Dashboard from './Dashboard';
 import Transactions from './Transactions';
-import Categories from './Categories';
+import Settings from './Settings';
 // Placeholders for other pages
 const Placeholder = ({ title }) => <div className="p-8"><h1>{title}</h1></div>;
 
@@ -23,7 +23,7 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="transacoes" element={<Transactions />} />
-        <Route path="categorias" element={<Categories />} />
+        <Route path="configuracoes" element={<Settings />} />
       </Route>
       
       <Route path="*" element={<Navigate to="/" replace />} />

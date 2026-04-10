@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, X, ArrowUpCircle, ArrowDownCircle, Pencil, Trash2 } from 'lucide-react';
+import { Plus, X, ArrowUpCircle, ArrowDownCircle, Pencil, Trash2, Building2, CreditCard as CardIcon } from 'lucide-react';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -20,6 +22,8 @@ export default function Transactions() {
     date: format(new Date(), 'yyyy-MM-dd'),
     payer: 'Casal',
     category_id: '',
+    account_id: '',
+    payment_method_id: '',
     is_installment: false,
     total_installments: 2,
     is_recurring: false,
@@ -31,15 +35,25 @@ export default function Transactions() {
     try {
       const month = currentDate.getMonth() + 1;
       const year = currentDate.getFullYear();
-      const [transRes, catRes] = await Promise.all([
+      const [transRes, catRes, accRes, payRes] = await Promise.all([
         axios.get(`/api/transactions?month=${month}&year=${year}`),
-        axios.get('/api/categories')
+        axios.get('/api/categories'),
+        axios.get('/api/accounts'),
+        axios.get('/api/payment-methods')
       ]);
       setTransactions(transRes.data);
       setCategories(catRes.data);
-      if (catRes.data.length > 0 && !formData.category_id) {
-        setFormData(prev => ({ ...prev, category_id: catRes.data[0].id }));
-      }
+      setAccounts(accRes.data);
+      setPaymentMethods(payRes.data);
+
+      // Set defaults for form if not set
+      setFormData(prev => ({
+        ...prev,
+        category_id: prev.category_id || (catRes.data.length > 0 ? catRes.data[0].id : ''),
+        account_id: prev.account_id || (accRes.data.length > 0 ? accRes.data[0].id : ''),
+        payment_method_id: prev.payment_method_id || (payRes.data.length > 0 ? payRes.data[0].id : '')
+      }));
+
     } catch (err) {
       console.error(err);
     } finally {
@@ -60,6 +74,8 @@ export default function Transactions() {
       date: t.date,
       payer: t.payer,
       category_id: t.category_id,
+      account_id: t.account_id || '',
+      payment_method_id: t.payment_method_id || '',
       is_installment: false,
       is_recurring: false
     });
@@ -83,7 +99,9 @@ export default function Transactions() {
       const payload = {
         ...formData,
         amount: parseFloat(formData.amount),
-        category_id: parseInt(formData.category_id)
+        category_id: parseInt(formData.category_id),
+        account_id: formData.account_id ? parseInt(formData.account_id) : null,
+        payment_method_id: formData.payment_method_id ? parseInt(formData.payment_method_id) : null
       };
       
       if (editingId) {
@@ -129,7 +147,7 @@ export default function Transactions() {
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white/50">
           <div className="flex items-center space-x-2 bg-white p-1 rounded-xl border border-gray-200">
             <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))} className="px-3 py-1 hover:bg-gray-50 rounded-lg text-sm text-gray-600">Anterior</button>
-            <span className="font-medium min-w-[120px] text-center capitalize text-primary">
+            <span className="font-medium min-w-[120px] text-center capitalize text-primary text-sm">
               {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
             </span>
             <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))} className="px-3 py-1 hover:bg-gray-50 rounded-lg text-sm text-gray-600">Próximo</button>
@@ -144,6 +162,7 @@ export default function Transactions() {
               <thead className="text-xs text-gray-500 uppercase bg-gray-50/50 border-b border-gray-100">
                 <tr>
                   <th className="px-6 py-4 font-medium">Data</th>
+                  <th className="px-6 py-4 font-medium text-center">Via</th>
                   <th className="px-6 py-4 font-medium">Descrição</th>
                   <th className="px-6 py-4 font-medium">Categoria</th>
                   <th className="px-6 py-4 font-medium">Pagador</th>
@@ -153,28 +172,34 @@ export default function Transactions() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {transactions.length === 0 ? (
-                  <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500">Nenhuma transação neste mês.</td></tr>
+                  <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500">Nenhuma transação neste mês.</td></tr>
                 ) : (
                   transactions.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500 text-xs">
                         {format(parseISO(t.date), 'dd MMM, yyyy', { locale: ptBR })}
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col items-center">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase">{t.payment_method?.name || '---'}</span>
+                          <span className="text-xs font-medium text-primary px-2 py-0.5 bg-primary/5 rounded-full mt-0.5">{t.account?.name || '---'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-900 min-w-[200px]">
                         <div className="flex items-center">
                           {t.type === 'income' ? <ArrowUpCircle className="w-4 h-4 text-success mr-2" /> : <ArrowDownCircle className="w-4 h-4 text-danger mr-2" />}
                           {t.description}
                         </div>
-                        {t.is_installment && <span className="ml-6 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full mt-1 inline-block">Parcela {t.installment_number}/{t.total_installments}</span>}
-                        {t.is_recurring && <span className="ml-6 text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full mt-1 inline-block">Recorrente mensal</span>}
+                        {t.is_installment && <span className="ml-6 text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full mt-1 inline-block">Parcela {t.installment_number}/{t.total_installments}</span>}
+                        {t.is_recurring && <span className="ml-6 text-[10px] text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full mt-1 inline-block">Recorrente mensal</span>}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: `${t.category?.color}20`, color: t.category?.color }}>
+                        <span className="px-3 py-1 rounded-full text-[11px] font-medium" style={{ backgroundColor: `${t.category?.color}20`, color: t.category?.color }}>
                           {t.category?.name || 'Geral'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-800">
                           {t.payer}
                         </span>
                       </td>
@@ -233,6 +258,25 @@ export default function Transactions() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center"><Building2 className="w-3 h-3 mr-1" /> Conta</label>
+                  <select required className="input-field" value={formData.account_id} onChange={e => setFormData({...formData, account_id: e.target.value})}>
+                    {accounts.map(acc => (
+                      <option key={acc.id} value={acc.id}>{acc.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center"><CardIcon className="w-3 h-3 mr-1" /> Forma de Pagto</label>
+                  <select required className="input-field" value={formData.payment_method_id} onChange={e => setFormData({...formData, payment_method_id: e.target.value})}>
+                    {paymentMethods.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
                   <select required className="input-field" value={formData.category_id} onChange={e => setFormData({...formData, category_id: e.target.value})}>
                     {categories.filter(c => c.type === formData.type).map(c => (
@@ -265,14 +309,14 @@ export default function Transactions() {
                   
                   {formData.is_installment && (
                      <div>
-                       <label className="block text-xs font-medium text-gray-500 mb-1">Em quantas vezes? (O valor total será rachado e agendado)</label>
+                       <label className="block text-xs font-medium text-gray-500 mb-1">Em quantas vezes?</label>
                        <input type="number" min="2" max="48" className="input-field py-1 text-sm" value={formData.total_installments} onChange={e => setFormData({...formData, total_installments: parseInt(e.target.value)})} />
                      </div>
                   )}
 
                   {formData.is_recurring && (
                      <div>
-                       <label className="block text-xs font-medium text-gray-500 mb-1">Projetar para quantos meses futuros? (O valor integral se repetirá)</label>
+                       <label className="block text-xs font-medium text-gray-500 mb-1">Projetar para quantos meses?</label>
                        <input type="number" min="2" max="60" className="input-field py-1 text-sm" value={formData.recurring_months} onChange={e => setFormData({...formData, recurring_months: parseInt(e.target.value)})} />
                      </div>
                   )}
@@ -281,7 +325,7 @@ export default function Transactions() {
 
               <div className="pt-4 flex justify-end space-x-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">Cancelar</button>
-                <button type="submit" className="btn-primary">{editingId ? 'Salvar Alterações' : 'Salvar Registro'}</button>
+                <button type="submit" className="btn-primary">Salvar Registro</button>
               </div>
             </form>
           </div>

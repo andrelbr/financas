@@ -174,7 +174,7 @@ export default function Dashboard() {
               <tr>
                 <th className="px-6 py-4 font-medium">Data</th>
                 <th className="px-6 py-4 font-medium">Descrição</th>
-                <th className="px-6 py-4 font-medium">Categoria</th>
+                <th className="px-6 py-4 font-medium">Via</th>
                 <th className="px-6 py-4 font-medium">Pagador</th>
                 <th className="px-6 py-4 font-medium text-right">Valor</th>
               </tr>
@@ -189,21 +189,18 @@ export default function Dashboard() {
               ) : (
                 stats.transactions.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 text-xs">
                       {format(parseISO(t.date), 'dd MMM, yyyy', { locale: ptBR })}
                     </td>
                     <td className="px-6 py-4 font-medium text-gray-900">
                       {t.description}
-                      {t.is_installment && <span className="ml-2 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">Parcelado</span>}
-                      {t.is_recurring && <span className="ml-2 text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">Recorrente</span>}
+                      {t.is_installment && <span className="ml-2 text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">Parcelado</span>}
                     </td>
                     <td className="px-6 py-4">
-                      <span 
-                        className="px-3 py-1 rounded-full text-xs font-medium"
-                        style={{ backgroundColor: `${t.category?.color}20`, color: t.category?.color }}
-                      >
-                        {t.category?.name || 'Geral'}
-                      </span>
+                       <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-400 font-bold uppercase">{t.payment_method?.name}</span>
+                          <span className="text-xs text-primary font-medium">{t.account?.name}</span>
+                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800">

@@ -29,6 +29,36 @@ class CategoryOut(CategoryBase):
     class Config:
         from_attributes = True
 
+class AccountBase(BaseModel):
+    name: str
+    color: str
+
+class AccountCreate(AccountBase):
+    pass
+
+class AccountUpdate(BaseModel):
+    name: Optional[str] = None
+    color: Optional[str] = None
+
+class AccountOut(AccountBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class PaymentMethodBase(BaseModel):
+    name: str
+
+class PaymentMethodCreate(PaymentMethodBase):
+    pass
+
+class PaymentMethodUpdate(BaseModel):
+    name: Optional[str] = None
+
+class PaymentMethodOut(PaymentMethodBase):
+    id: int
+    class Config:
+        from_attributes = True
+
 class TransactionBase(BaseModel):
     description: str
     amount: float
@@ -36,6 +66,8 @@ class TransactionBase(BaseModel):
     date: date
     payer: str
     category_id: int
+    account_id: Optional[int] = None
+    payment_method_id: Optional[int] = None
 
 class TransactionCreate(TransactionBase):
     is_installment: bool = False
@@ -50,11 +82,15 @@ class TransactionUpdate(BaseModel):
     date: Optional[date] = None
     payer: Optional[str] = None
     category_id: Optional[int] = None
+    account_id: Optional[int] = None
+    payment_method_id: Optional[int] = None
 
 class TransactionOut(TransactionBase):
     id: int
     user_id: int
     category: Optional[CategoryOut]
+    account: Optional[AccountOut]
+    payment_method: Optional[PaymentMethodOut]
     is_installment: bool
     installment_group_id: Optional[str]
     installment_number: Optional[int]
