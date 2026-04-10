@@ -187,7 +187,12 @@ def get_recent_transactions(db: Session, limit=10):
     ).order_by(models.Transaction.date.desc()).limit(limit).all()
 
 def update_transaction(db: Session, transaction_id: int, transaction: schemas.TransactionUpdate):
-    db_transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
+    db_transaction = db.query(models.Transaction).options(
+        joinedload(models.Transaction.category),
+        joinedload(models.Transaction.account),
+        joinedload(models.Transaction.payment_method)
+    ).filter(models.Transaction.id == transaction_id).first()
+    
     if not db_transaction:
         return None
     for key, value in transaction.model_dump(exclude_unset=True).items():
