@@ -125,23 +125,40 @@ export default function Dashboard() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {['André', 'Sofia', 'Casal'].map(name => {
-            const data = stats.payer_data.find(p => p.name === name) || { value: 0 };
+            const data = stats.payer_data.find(p => p.name === name) || { value: 0, income: 0, expense: 0 };
             return (
-              <div key={name} className="flex items-center p-4 bg-white/40 rounded-2xl border border-white/60 shadow-sm group hover:bg-white hover:shadow-md transition-all">
-                <div className="relative">
-                  <img 
-                    src={avatars[name]} 
-                    alt={name} 
-                    className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
-                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${name}&background=random`; }}
-                  />
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white">
-                    {Math.round((data.value / (stats.expense || 1)) * 100)}%
+              <div key={name} className="flex flex-col p-4 bg-white/40 rounded-2xl border border-white/60 shadow-sm group hover:bg-white hover:shadow-md transition-all">
+                <div className="flex items-center mb-4">
+                  <div className="relative">
+                    <img 
+                      src={avatars[name]} 
+                      alt={name} 
+                      className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm"
+                      onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${name}&background=random`; }}
+                    />
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white">
+                      {Math.round((data.expense / (stats.expense || 1)) * 100)}%
+                    </div>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{name}</p>
+                    <p className="text-sm font-bold text-gray-900">Total Despesa</p>
                   </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{name}</p>
-                  <p className="text-lg font-bold text-gray-900">{formatCurrency(data.value)}</p>
+                
+                <div className="space-y-2 border-t border-gray-100/50 pt-3 mt-auto">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500 flex items-center">
+                      <ArrowUpCircle className="w-3 h-3 text-success mr-1" /> Receita
+                    </span>
+                    <span className="font-bold text-success">{formatCurrency(data.income)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500 flex items-center">
+                      <ArrowDownCircle className="w-3 h-3 text-danger mr-1" /> Despesa
+                    </span>
+                    <span className="font-bold text-danger">{formatCurrency(data.expense)}</span>
+                  </div>
                 </div>
               </div>
             );
