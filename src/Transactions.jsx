@@ -128,7 +128,11 @@ export default function Transactions() {
       fetchData();
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.detail || 'Erro ao salvar transação');
+      const errorDetail = err.response?.data?.detail;
+      const errorMessage = typeof errorDetail === 'string' 
+        ? errorDetail 
+        : JSON.stringify(errorDetail) || 'Erro ao salvar transação';
+      alert(errorMessage);
     }
   };
 
