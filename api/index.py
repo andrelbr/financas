@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
@@ -22,6 +23,15 @@ app.add_middleware(
 def on_startup():
     models.Base.metadata.create_all(bind=database.engine)
     db = database.SessionLocal()
+    
+    # Manual migration: Add columns to transactions if they don't exist
+    try:
+        db.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS account_id INTEGER REFERENCES accounts(id)"))
+        db.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payment_method_id INTEGER REFERENCES payment_methods(id)"))
+        db.commit()
+    except Exception as e:
+        print(f"Migration error: {e}")
+        db.rollback()
     
     # Initialize default users
     andre = crud.get_user_by_email(db, "andrebaldo71@gmail.com")
