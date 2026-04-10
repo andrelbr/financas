@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from dateutil.relativedelta import relativedelta
 from passlib.context import CryptContext
 from . import models, schemas
@@ -170,13 +170,21 @@ def get_transactions(db: Session, month: int, year: int):
     start_date = date(year, month, 1)
     end_date = start_date + relativedelta(months=1, days=-1)
     
-    return db.query(models.Transaction).filter(
+    return db.query(models.Transaction).options(
+        joinedload(models.Transaction.category),
+        joinedload(models.Transaction.account),
+        joinedload(models.Transaction.payment_method)
+    ).filter(
         models.Transaction.date >= start_date,
         models.Transaction.date <= end_date
     ).order_by(models.Transaction.date.desc()).all()
 
 def get_recent_transactions(db: Session, limit=10):
-    return db.query(models.Transaction).order_by(models.Transaction.date.desc()).limit(limit).all()
+    return db.query(models.Transaction).options(
+        joinedload(models.Transaction.category),
+        joinedload(models.Transaction.account),
+        joinedload(models.Transaction.payment_method)
+    ).order_by(models.Transaction.date.desc()).limit(limit).all()
 
 def update_transaction(db: Session, transaction_id: int, transaction: schemas.TransactionUpdate):
     db_transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
