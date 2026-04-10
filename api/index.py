@@ -228,13 +228,15 @@ def read_dashboard(month: int, year: int, db: Session = Depends(database.get_db)
     for t in transactions:
         payer = t.payer
         if payer not in payer_distribution:
-            payer_distribution[payer] = {"name": payer, "value": 0, "income": 0, "expense": 0}
+            payer_distribution[payer] = {"name": payer, "value": 0, "income": 0, "expense": 0, "balance": 0}
         
         if t.type == "income":
             payer_distribution[payer]["income"] += t.amount
         else:
             payer_distribution[payer]["expense"] += t.amount
             payer_distribution[payer]["value"] += t.amount
+        
+        payer_distribution[payer]["balance"] = payer_distribution[payer]["income"] - payer_distribution[payer]["expense"]
 
     return {
         "income": income,

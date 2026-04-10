@@ -159,6 +159,12 @@ export default function Dashboard() {
                     </span>
                     <span className="font-bold text-danger">{formatCurrency(data.expense)}</span>
                   </div>
+                  <div className="flex justify-between items-center text-xs border-t border-gray-100/50 pt-2 mt-1">
+                    <span className="text-gray-600 font-medium">Saldo</span>
+                    <span className={`font-bold ${data.balance >= 0 ? 'text-primary' : 'text-danger'}`}>
+                      {formatCurrency(data.balance)}
+                    </span>
+                  </div>
                 </div>
               </div>
             );
