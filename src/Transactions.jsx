@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, X, ArrowUpCircle, ArrowDownCircle, Pencil, Trash2, Building2, CreditCard as CardIcon } from 'lucide-react';
+import { Plus, X, ArrowUpCircle, ArrowDownCircle, Pencil, Trash2, Building2, CreditCard as CardIcon, Filter, SearchX } from 'lucide-react';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
@@ -13,6 +13,14 @@ export default function Transactions() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Filter State
+  const [filters, setFilters] = useState({
+    payer: '',
+    category_id: '',
+    account_id: '',
+    payment_method_id: ''
+  });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -35,24 +43,36 @@ export default function Transactions() {
     try {
       const month = currentDate.getMonth() + 1;
       const year = currentDate.getFullYear();
+      
+      // Build query params
+      const params = new URLSearchParams({ month, year });
+      if (filters.payer) params.append('payer', filters.payer);
+      if (filters.category_id) params.append('category_id', filters.category_id);
+      if (filters.account_id) params.append('account_id', filters.account_id);
+      if (filters.payment_method_id) params.append('payment_method_id', filters.payment_method_id);
+
       const [transRes, catRes, accRes, payRes] = await Promise.all([
-        axios.get(`/api/transactions?month=${month}&year=${year}`),
+        axios.get(`/api/transactions?${params.toString()}`),
         axios.get('/api/categories'),
         axios.get('/api/accounts'),
         axios.get('/api/payment-methods')
       ]);
+      
       setTransactions(transRes.data);
       setCategories(catRes.data);
       setAccounts(accRes.data);
       setPaymentMethods(payRes.data);
 
       // Set defaults for form if not set
-      setFormData(prev => ({
-        ...prev,
-        category_id: prev.category_id || (catRes.data.length > 0 ? catRes.data[0].id : ''),
-        account_id: prev.account_id || (accRes.data.length > 0 ? accRes.data[0].id : ''),
-        payment_method_id: prev.payment_method_id || (payRes.data.length > 0 ? payRes.data[0].id : '')
-      }));
+      if (!formData.category_id && catRes.data.length > 0) {
+        setFormData(prev => ({ ...prev, category_id: catRes.data[0].id }));
+      }
+      if (!formData.account_id && accRes.data.length > 0) {
+        setFormData(prev => ({ ...prev, account_id: accRes.data[0].id }));
+      }
+      if (!formData.payment_method_id && payRes.data.length > 0) {
+        setFormData(prev => ({ ...prev, payment_method_id: payRes.data[0].id }));
+      }
 
     } catch (err) {
       console.error(err);
@@ -63,7 +83,7 @@ export default function Transactions() {
 
   useEffect(() => {
     fetchData();
-  }, [currentDate]);
+  }, [currentDate, filters]);
 
   const handleEdit = (t) => {
     setEditingId(t.id);
@@ -107,7 +127,6 @@ export default function Transactions() {
         payment_method_id: formData.payment_method_id ? parseInt(formData.payment_method_id) : null
       };
       
-      // Remove nulls to avoid validation errors if they are required (though they shouldn't be here)
       if (!payload.category_id) delete payload.category_id;
       
       if (editingId) {
@@ -153,6 +172,54 @@ export default function Transactions() {
         </button>
       </div>
 
+      {/* Barra de Filtros */}
+      <div className="glass-card p-4 overflow-visible">
+        <div className="flex items-center space-x-2 mb-4 text-gray-700">
+           <Filter className="w-4 h-4" />
+           <span className="text-sm font-bold uppercase tracking-wider">Filtros de Busca</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Pagador</label>
+            <select className="input-field py-1 text-xs" value={filters.payer} onChange={e => setFilters({...filters, payer: e.target.value})}>
+              <option value="">Todos</option>
+              <option value="André">André</option>
+              <option value="Sofia">Sofia</option>
+              <option value="Casal">Casal</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Categoria</label>
+            <select className="input-field py-1 text-xs" value={filters.category_id} onChange={e => setFilters({...filters, category_id: e.target.value})}>
+              <option value="">Todas</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Conta</label>
+            <select className="input-field py-1 text-xs" value={filters.account_id} onChange={e => setFilters({...filters, account_id: e.target.value})}>
+              <option value="">Todas</option>
+              {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Forma Pagto</label>
+            <select className="input-field py-1 text-xs" value={filters.payment_method_id} onChange={e => setFilters({...filters, payment_method_id: e.target.value})}>
+              <option value="">Todas</option>
+              {paymentMethods.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+          </div>
+          <div className="flex items-end">
+            <button 
+              onClick={() => setFilters({ payer: '', category_id: '', account_id: '', payment_method_id: '' })}
+              className="text-xs text-primary font-medium hover:underline flex items-center mb-2"
+            >
+              Limpar Filtros
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="glass-card p-0 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white/50">
           <div className="flex items-center space-x-2 bg-white p-1 rounded-xl border border-gray-200">
@@ -182,7 +249,14 @@ export default function Transactions() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {transactions.length === 0 ? (
-                  <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500">Nenhuma transação neste mês.</td></tr>
+                  <tr>
+                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                      <div className="flex flex-col items-center">
+                        <SearchX className="w-8 h-8 text-gray-300 mb-2" />
+                        <p>Nenhuma transação encontrada com esses filtros.</p>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
                   transactions.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">

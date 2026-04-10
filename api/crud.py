@@ -165,19 +165,30 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate, user
         db.refresh(db_t)
         return db_t
 
-def get_transactions(db: Session, month: int, year: int):
+def get_transactions(db: Session, month: int, year: int, category_id: int = None, payer: str = None, account_id: int = None, payment_method_id: int = None):
     # Basic filtering by month/year
     start_date = date(year, month, 1)
     end_date = start_date + relativedelta(months=1, days=-1)
     
-    return db.query(models.Transaction).options(
+    query = db.query(models.Transaction).options(
         joinedload(models.Transaction.category),
         joinedload(models.Transaction.account),
         joinedload(models.Transaction.payment_method)
     ).filter(
         models.Transaction.date >= start_date,
         models.Transaction.date <= end_date
-    ).order_by(models.Transaction.date.desc()).all()
+    )
+    
+    if category_id:
+        query = query.filter(models.Transaction.category_id == category_id)
+    if payer:
+        query = query.filter(models.Transaction.payer == payer)
+    if account_id:
+        query = query.filter(models.Transaction.account_id == account_id)
+    if payment_method_id:
+        query = query.filter(models.Transaction.payment_method_id == payment_method_id)
+        
+    return query.order_by(models.Transaction.date.desc()).all()
 
 def get_recent_transactions(db: Session, limit=10):
     return db.query(models.Transaction).options(

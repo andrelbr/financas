@@ -191,8 +191,17 @@ def create_transaction(transaction: schemas.TransactionCreate, db: Session = Dep
     return crud.create_transaction(db, transaction, current_user.id)
 
 @app.get("/api/transactions", response_model=list[schemas.TransactionOut])
-def read_transactions(month: int, year: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
-    return crud.get_transactions(db, month, year)
+def read_transactions(
+    month: int, 
+    year: int, 
+    category_id: int = None,
+    payer: str = None,
+    account_id: int = None,
+    payment_method_id: int = None,
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    return crud.get_transactions(db, month, year, category_id, payer, account_id, payment_method_id)
 
 @app.put("/api/transactions/{transaction_id}", response_model=schemas.TransactionOut)
 def update_transaction(transaction_id: int, transaction: schemas.TransactionUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
@@ -208,8 +217,17 @@ def delete_transaction(transaction_id: int, db: Session = Depends(database.get_d
     return {"message": "Transaction deleted"}
 
 @app.get("/api/dashboard", response_model=dict)
-def read_dashboard(month: int, year: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
-    transactions = crud.get_transactions(db, month, year)
+def read_dashboard(
+    month: int, 
+    year: int, 
+    category_id: int = None,
+    payer: str = None,
+    account_id: int = None,
+    payment_method_id: int = None,
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    transactions = crud.get_transactions(db, month, year, category_id, payer, account_id, payment_method_id)
     income = sum(t.amount for t in transactions if t.type == "income")
     expense = sum(t.amount for t in transactions if t.type == "expense")
     balance = income - expense
