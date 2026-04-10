@@ -4,9 +4,20 @@ import { useAuth } from './AuthContext';
 import { ArrowUpCircle, ArrowDownCircle, DollarSign, Calendar } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid 
+} from 'recharts';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ income: 0, expense: 0, balance: 0, transactions: [] });
+  const [stats, setStats] = useState({ 
+    income: 0, 
+    expense: 0, 
+    balance: 0, 
+    transactions: [],
+    category_data: [],
+    payer_data: []
+  });
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -100,6 +111,58 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gastos por Categoria */}
+        <div className="glass-card min-h-[400px]">
+          <h3 className="text-lg font-bold text-gray-900 mb-6 border-b pb-2">Despesas por Categoria</h3>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={stats.category_data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {stats.category_data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value) => formatCurrency(value)}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Legend verticalAlign="bottom" height={36}/>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Gastos por Pagador */}
+        <div className="glass-card min-h-[400px]">
+          <h3 className="text-lg font-bold text-gray-900 mb-6 border-b pb-2">Despesas por Quem Pagou</h3>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.payer_data}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                <YAxis hide />
+                <Tooltip 
+                   cursor={{fill: '#f8fafc'}}
+                   formatter={(value) => formatCurrency(value)}
+                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
       {/* Recent Transactions List */}
       <div className="glass-card p-0 overflow-hidden mt-8">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
@@ -137,9 +200,9 @@ export default function Dashboard() {
                     <td className="px-6 py-4">
                       <span 
                         className="px-3 py-1 rounded-full text-xs font-medium"
-                        style={{ backgroundColor: `${t.category.color}20`, color: t.category.color }}
+                        style={{ backgroundColor: `${t.category?.color}20`, color: t.category?.color }}
                       >
-                        {t.category.name}
+                        {t.category?.name || 'Geral'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
