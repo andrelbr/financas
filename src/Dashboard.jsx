@@ -238,16 +238,20 @@ export default function Dashboard() {
           <div className="h-[300px] w-full">
             {stats.category_data.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={stats.category_data}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
+                  <PieChart>
+                    <Pie
+                      data={stats.category_data}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({ name, value, percent }) => 
+                        `${name}: ${formatCurrency(value)} (${(percent * 100).toFixed(0)}%)`
+                      }
+                      labelLine={true}
+                    >
                     {stats.category_data.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
