@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { ArrowUpCircle, ArrowDownCircle, DollarSign, Calendar } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function Dashboard() {
@@ -127,7 +127,7 @@ export default function Dashboard() {
                 stats.transactions.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                      {format(new Date(t.date), 'dd MMM, yyyy', { locale: ptBR })}
+                      {format(parseISO(t.date), 'dd MMM, yyyy', { locale: ptBR })}
                     </td>
                     <td className="px-6 py-4 font-medium text-gray-900">
                       {t.description}
