@@ -19,6 +19,11 @@ class CategoryBase(BaseModel):
 class CategoryCreate(CategoryBase):
     pass
 
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    color: Optional[str] = None
+
 class CategoryOut(CategoryBase):
     id: int
     class Config:
@@ -37,6 +42,14 @@ class TransactionCreate(TransactionBase):
     total_installments: Optional[int] = None
     is_recurring: bool = False
     recurring_months: Optional[int] = 12 # How many upcoming months to create
+
+class TransactionUpdate(BaseModel):
+    description: Optional[str] = None
+    amount: Optional[float] = None
+    type: Optional[str] = None
+    date: Optional[date] = None
+    payer: Optional[str] = None
+    category_id: Optional[int] = None
 
 class TransactionOut(TransactionBase):
     id: int

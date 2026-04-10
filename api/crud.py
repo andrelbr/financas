@@ -26,6 +26,24 @@ def create_category(db: Session, category: schemas.CategoryCreate):
     db.refresh(db_category)
     return db_category
 
+def update_category(db: Session, category_id: int, category: schemas.CategoryUpdate):
+    db_category = db.query(models.Category).filter(models.Category.id == category_id).first()
+    if not db_category:
+        return None
+    for key, value in category.model_dump(exclude_unset=True).items():
+        setattr(db_category, key, value)
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+def delete_category(db: Session, category_id: int):
+    db_category = db.query(models.Category).filter(models.Category.id == category_id).first()
+    if not db_category:
+        return False
+    db.delete(db_category)
+    db.commit()
+    return True
+
 def create_transaction(db: Session, transaction: schemas.TransactionCreate, user_id: int):
     base_data = transaction.model_dump(exclude={"is_installment", "total_installments", "is_recurring", "recurring_months"})
     base_data["user_id"] = user_id
@@ -100,3 +118,21 @@ def get_transactions(db: Session, month: int, year: int):
 
 def get_recent_transactions(db: Session, limit=10):
     return db.query(models.Transaction).order_by(models.Transaction.date.desc()).limit(limit).all()
+
+def update_transaction(db: Session, transaction_id: int, transaction: schemas.TransactionUpdate):
+    db_transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
+    if not db_transaction:
+        return None
+    for key, value in transaction.model_dump(exclude_unset=True).items():
+        setattr(db_transaction, key, value)
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
+
+def delete_transaction(db: Session, transaction_id: int):
+    db_transaction = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
+    if not db_transaction:
+        return False
+    db.delete(db_transaction)
+    db.commit()
+    return True

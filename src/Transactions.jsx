@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, X, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Plus, X, ArrowUpCircle, ArrowDownCircle, Pencil, Trash2 } from 'lucide-react';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Form State
@@ -50,6 +51,32 @@ export default function Transactions() {
     fetchData();
   }, [currentDate]);
 
+  const handleEdit = (t) => {
+    setEditingId(t.id);
+    setFormData({
+      description: t.description,
+      amount: t.amount,
+      type: t.type,
+      date: t.date,
+      payer: t.payer,
+      category_id: t.category_id,
+      is_installment: false,
+      is_recurring: false
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Excluir esta transação?')) return;
+    try {
+      await axios.delete(`/api/transactions/${id}`);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao excluir transação');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -58,8 +85,15 @@ export default function Transactions() {
         amount: parseFloat(formData.amount),
         category_id: parseInt(formData.category_id)
       };
-      await axios.post('/api/transactions', payload);
+      
+      if (editingId) {
+        await axios.put(`/api/transactions/${editingId}`, payload);
+      } else {
+        await axios.post('/api/transactions', payload);
+      }
+      
       setIsModalOpen(false);
+      setEditingId(null);
       setFormData({
         ...formData,
         description: '',
@@ -85,7 +119,7 @@ export default function Transactions() {
           <h1 className="text-2xl font-bold text-gray-900">Transações</h1>
           <p className="text-gray-500 text-sm">Gerencie suas receitas e despesas detalhadas.</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center shadow-lg">
+        <button onClick={() => { setEditingId(null); setIsModalOpen(true); }} className="btn-primary flex items-center shadow-lg">
           <Plus className="w-5 h-5 mr-1" />
           Nova Transação
         </button>
@@ -114,14 +148,15 @@ export default function Transactions() {
                   <th className="px-6 py-4 font-medium">Categoria</th>
                   <th className="px-6 py-4 font-medium">Pagador</th>
                   <th className="px-6 py-4 font-medium text-right">Valor</th>
+                  <th className="px-6 py-4 font-medium text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {transactions.length === 0 ? (
-                  <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">Nenhuma transação neste mês.</td></tr>
+                  <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500">Nenhuma transação neste mês.</td></tr>
                 ) : (
                   transactions.map((t) => (
-                    <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                         {format(parseISO(t.date), 'dd MMM, yyyy', { locale: ptBR })}
                       </td>
@@ -146,6 +181,16 @@ export default function Transactions() {
                       <td className={`px-6 py-4 text-right font-bold whitespace-nowrap ${t.type === 'income' ? 'text-success' : 'text-gray-900'}`}>
                         {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
                       </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleEdit(t)} className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                            <Pencil className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDelete(t.id)} className="p-1.5 text-gray-400 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -158,9 +203,9 @@ export default function Transactions() {
       {/* Modal Nova Transação */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="glass-card w-full max-w-lg shadow-2xl bg-white/95">
+          <div className="glass-card w-full max-w-lg shadow-2xl bg-white/95 border-primary/20">
             <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-              <h2 className="text-xl font-bold text-gray-900">Lançar Registro</h2>
+              <h2 className="text-xl font-bold text-gray-900">{editingId ? 'Editar Transação' : 'Lançar Registro'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1"><X className="w-5 h-5"/></button>
             </div>
             
@@ -205,7 +250,7 @@ export default function Transactions() {
                 </div>
               </div>
 
-              {formData.type === 'expense' && (
+              {!editingId && formData.type === 'expense' && (
                 <div className="p-4 bg-gray-50 rounded-xl space-y-3 border border-gray-100">
                   <div className="flex items-center space-x-4">
                     <label className="flex items-center space-x-2 text-sm text-gray-700">
@@ -236,7 +281,7 @@ export default function Transactions() {
 
               <div className="pt-4 flex justify-end space-x-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">Cancelar</button>
-                <button type="submit" className="btn-primary">Salvar Registro</button>
+                <button type="submit" className="btn-primary">{editingId ? 'Salvar Alterações' : 'Salvar Registro'}</button>
               </div>
             </form>
           </div>

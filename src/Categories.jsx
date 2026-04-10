@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, X, Tag } from 'lucide-react';
+import { Plus, X, Tag, Pencil, Trash2 } from 'lucide-react';
 
 export default function Categories() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -30,11 +31,36 @@ export default function Categories() {
     fetchCategories();
   }, []);
 
+  const handleEdit = (cat) => {
+    setEditingId(cat.id);
+    setFormData({
+      name: cat.name,
+      type: cat.type,
+      color: cat.color
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Tem certeza que deseja excluir esta categoria?')) return;
+    try {
+      await axios.delete(`/api/categories/${id}`);
+      fetchCategories();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao excluir categoria. Ela pode estar em uso.');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/categories', formData);
+      if (editingId) {
+        await axios.put(`/api/categories/${editingId}`, formData);
+      } else {
+        await axios.post('/api/categories', formData);
+      }
       setIsModalOpen(false);
+      setEditingId(null);
       setFormData({ name: '', type: 'expense', color: '#3b82f6' });
       fetchCategories();
     } catch (err) {
@@ -53,7 +79,7 @@ export default function Categories() {
           <h1 className="text-2xl font-bold text-gray-900">Categorias</h1>
           <p className="text-gray-500 text-sm">Organize de onde seu dinheiro vem e para onde ele vai.</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center shadow-lg">
+        <button onClick={() => { setEditingId(null); setFormData({ name: '', type: 'expense', color: '#3b82f6' }); setIsModalOpen(true); }} className="btn-primary flex items-center shadow-lg">
           <Plus className="w-5 h-5 mr-1" />
           Nova Categoria
         </button>
@@ -74,9 +100,19 @@ export default function Categories() {
                  <p className="p-4 text-sm text-gray-400">Nenhuma categoria encontrada.</p>
                ) : (
                  expenseCategories.map(cat => (
-                   <div key={cat.id} className="p-4 flex items-center">
-                     <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: cat.color }}></div>
-                     <span className="font-medium text-gray-800">{cat.name}</span>
+                   <div key={cat.id} className="p-4 flex items-center justify-between group">
+                     <div className="flex items-center">
+                        <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: cat.color }}></div>
+                        <span className="font-medium text-gray-800">{cat.name}</span>
+                     </div>
+                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEdit(cat)} className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                           <Pencil className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(cat.id)} className="p-1.5 text-gray-400 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
+                           <Trash2 className="w-4 h-4" />
+                        </button>
+                     </div>
                    </div>
                  ))
                )}
@@ -94,9 +130,19 @@ export default function Categories() {
                  <p className="p-4 text-sm text-gray-400">Nenhuma categoria encontrada.</p>
                ) : (
                  incomeCategories.map(cat => (
-                   <div key={cat.id} className="p-4 flex items-center">
-                     <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: cat.color }}></div>
-                     <span className="font-medium text-gray-800">{cat.name}</span>
+                   <div key={cat.id} className="p-4 flex items-center justify-between group">
+                     <div className="flex items-center">
+                        <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: cat.color }}></div>
+                        <span className="font-medium text-gray-800">{cat.name}</span>
+                     </div>
+                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEdit(cat)} className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                           <Pencil className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(cat.id)} className="p-1.5 text-gray-400 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
+                           <Trash2 className="w-4 h-4" />
+                        </button>
+                     </div>
                    </div>
                  ))
                )}
@@ -108,9 +154,9 @@ export default function Categories() {
       {/* Modal Nova Categoria */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="glass-card w-full max-w-sm shadow-2xl bg-white/95">
+          <div className="glass-card w-full max-w-sm shadow-2xl bg-white/95 border-primary/20">
             <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-              <h2 className="text-xl font-bold text-gray-900">Criar Categoria</h2>
+              <h2 className="text-xl font-bold text-gray-900">{editingId ? 'Editar Categoria' : 'Criar Categoria'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1"><X className="w-5 h-5"/></button>
             </div>
             
@@ -137,7 +183,7 @@ export default function Categories() {
 
               <div className="pt-4 flex justify-end space-x-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">Cancelar</button>
-                <button type="submit" className="btn-primary">Salvar Categoria</button>
+                <button type="submit" className="btn-primary">{editingId ? 'Salvar Alterações' : 'Salvar Categoria'}</button>
               </div>
             </form>
           </div>

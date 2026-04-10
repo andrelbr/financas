@@ -89,6 +89,22 @@ def read_categories(db: Session = Depends(database.get_db), current_user: models
 def create_category(category: schemas.CategoryCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     return crud.create_category(db, category)
 
+@app.put("/api/categories/{category_id}", response_model=schemas.CategoryOut)
+def update_category(category_id: int, category: schemas.CategoryUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    db_category = crud.update_category(db, category_id, category)
+    if not db_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return db_category
+
+@app.delete("/api/categories/{category_id}")
+def delete_category(category_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    # Check if category is used
+    if db.query(models.Transaction).filter(models.Transaction.category_id == category_id).first():
+        raise HTTPException(status_code=400, detail="Cannot delete category in use by transactions")
+    if not crud.delete_category(db, category_id):
+        raise HTTPException(status_code=404, detail="Category not found")
+    return {"message": "Category deleted"}
+
 @app.post("/api/transactions", response_model=schemas.TransactionOut)
 def create_transaction(transaction: schemas.TransactionCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     return crud.create_transaction(db, transaction, current_user.id)
@@ -97,6 +113,19 @@ def create_transaction(transaction: schemas.TransactionCreate, db: Session = Dep
 def read_transactions(month: int, year: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     return crud.get_transactions(db, month, year)
 
+@app.put("/api/transactions/{transaction_id}", response_model=schemas.TransactionOut)
+def update_transaction(transaction_id: int, transaction: schemas.TransactionUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    db_transaction = crud.update_transaction(db, transaction_id, transaction)
+    if not db_transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return db_transaction
+
+@app.delete("/api/transactions/{transaction_id}")
+def delete_transaction(transaction_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    if not crud.delete_transaction(db, transaction_id):
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return {"message": "Transaction deleted"}
+
 @app.get("/api/dashboard", response_model=dict)
 def read_dashboard(month: int, year: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     transactions = crud.get_transactions(db, month, year)
@@ -104,9 +133,29 @@ def read_dashboard(month: int, year: int, db: Session = Depends(database.get_db)
     expense = sum(t.amount for t in transactions if t.type == "expense")
     balance = income - expense
     
+    # Category Distribution for Expenses
+    cat_distribution = {}
+    for t in transactions:
+        if t.type == "expense" and t.category:
+            cat_name = t.category.name
+            if cat_name not in cat_distribution:
+                cat_distribution[cat_name] = {"name": cat_name, "value": 0, "color": t.category.color}
+            cat_distribution[cat_name]["value"] += t.amount
+            
+    # Payer Distribution for Expenses
+    payer_distribution = {}
+    for t in transactions:
+        if t.type == "expense":
+            payer = t.payer
+            if payer not in payer_distribution:
+                payer_distribution[payer] = {"name": payer, "value": 0}
+            payer_distribution[payer]["value"] += t.amount
+
     return {
         "income": income,
         "expense": expense,
         "balance": balance,
-        "transactions": [schemas.TransactionOut.model_validate(t).model_dump() for t in transactions[:5]] # Recent 5 of this month
+        "category_data": list(cat_distribution.values()),
+        "payer_data": list(payer_distribution.values()),
+        "transactions": [schemas.TransactionOut.model_validate(t).model_dump() for t in transactions[:5]]
     }
