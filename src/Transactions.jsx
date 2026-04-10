@@ -97,12 +97,18 @@ export default function Transactions() {
     e.preventDefault();
     try {
       const payload = {
-        ...formData,
-        amount: parseFloat(formData.amount),
-        category_id: parseInt(formData.category_id),
+        description: formData.description,
+        amount: parseFloat(formData.amount) || 0,
+        type: formData.type,
+        date: formData.date,
+        payer: formData.payer,
+        category_id: parseInt(formData.category_id) || null,
         account_id: formData.account_id ? parseInt(formData.account_id) : null,
         payment_method_id: formData.payment_method_id ? parseInt(formData.payment_method_id) : null
       };
+      
+      // Remove nulls to avoid validation errors if they are required (though they shouldn't be here)
+      if (!payload.category_id) delete payload.category_id;
       
       if (editingId) {
         await axios.put(`/api/transactions/${editingId}`, payload);
@@ -122,7 +128,7 @@ export default function Transactions() {
       fetchData();
     } catch (err) {
       console.error(err);
-      alert('Erro ao salvar transação');
+      alert(err.response?.data?.detail || 'Erro ao salvar transação');
     }
   };
 
