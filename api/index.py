@@ -111,14 +111,30 @@ def update_category(category_id: int, category: schemas.CategoryUpdate, db: Sess
 
 @app.delete("/api/categories/{category_id}")
 def delete_category(category_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    db_category = db.query(models.Category).filter(models.Category.id == category_id).first()
+    if not db_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+        
+    if db_category.name == "Geral":
+        raise HTTPException(status_code=400, detail="Cannot delete the 'Geral' category")
+
     # Check if category is used
-    if db.query(models.Transaction).filter(models.Transaction.category_id == category_id).first():
-        # Better than raising 400, we could allow it but the UI should warn. 
-        # For now, let's keep it safe.
-        raise HTTPException(status_code=400, detail="Cannot delete category in use by transactions")
+    transactions_count = db.query(models.Transaction).filter(models.Transaction.category_id == category_id).count()
+    if transactions_count > 0:
+        # Reassign to "Geral"
+        general_cat = db.query(models.Category).filter(models.Category.name == "Geral", models.Category.type == db_category.type).first()
+        if not general_cat:
+            general_cat = models.Category(name="Geral", type=db_category.type, color="#cccccc")
+            db.add(general_cat)
+            db.commit()
+            db.refresh(general_cat)
+        
+        db.query(models.Transaction).filter(models.Transaction.category_id == category_id).update({"category_id": general_cat.id})
+        db.commit()
+
     if not crud.delete_category(db, category_id):
         raise HTTPException(status_code=404, detail="Category not found")
-    return {"message": "Category deleted"}
+    return {"message": "Category deleted and transactions moved to General"}
 
 # Account Routes
 @app.get("/api/accounts", response_model=list[schemas.AccountOut])

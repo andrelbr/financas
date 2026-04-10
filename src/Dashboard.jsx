@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
-import { ArrowUpCircle, ArrowDownCircle, DollarSign, Calendar } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, DollarSign, Calendar, Users } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -20,6 +20,12 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  const avatars = {
+    "Casal": "https://i.ibb.co/p6Zz9shM/Whats-App-Image-2026-04-10-at-17-14-44.jpg",
+    "Sofia": "https://i.ibb.co/vvJ3s1kT/Whats-App-Image-2026-04-10-at-17-14-43.jpg",
+    "André": "https://i.ibb.co/zTGFLMQN/1749123367453.jpg"
+  };
 
   const fetchStats = async () => {
     setLoading(true);
@@ -74,7 +80,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Cards */}
+      {/* Cards Financeiros Principais */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="glass-card flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
@@ -111,6 +117,38 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Seção Membros da Família */}
+      <div className="glass-card p-6 border-white/40">
+        <div className="flex items-center mb-6">
+           <Users className="w-5 h-5 text-primary mr-2" />
+           <h3 className="text-lg font-bold text-gray-900">Gastos por Membro</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {['André', 'Sofia', 'Casal'].map(name => {
+            const data = stats.payer_data.find(p => p.name === name) || { value: 0 };
+            return (
+              <div key={name} className="flex items-center p-4 bg-white/40 rounded-2xl border border-white/60 shadow-sm group hover:bg-white hover:shadow-md transition-all">
+                <div className="relative">
+                  <img 
+                    src={avatars[name]} 
+                    alt={name} 
+                    className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
+                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${name}&background=random`; }}
+                  />
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white">
+                    {Math.round((data.value / (stats.expense || 1)) * 100)}%
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{name}</p>
+                  <p className="text-lg font-bold text-gray-900">{formatCurrency(data.value)}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gastos por Categoria */}
@@ -142,9 +180,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Gastos por Pagador */}
+        {/* Gastos por Pagador (Gráfico) */}
         <div className="glass-card min-h-[400px]">
-          <h3 className="text-lg font-bold text-gray-900 mb-6 border-b pb-2">Despesas por Quem Pagou</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-6 border-b pb-2">Distribuição de Pagamentos</h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.payer_data}>
@@ -175,7 +213,7 @@ export default function Dashboard() {
                 <th className="px-6 py-4 font-medium">Data</th>
                 <th className="px-6 py-4 font-medium">Descrição</th>
                 <th className="px-6 py-4 font-medium">Via</th>
-                <th className="px-6 py-4 font-medium">Pagador</th>
+                <th className="px-6 py-4 font-medium text-center">Pagador</th>
                 <th className="px-6 py-4 font-medium text-right">Valor</th>
               </tr>
             </thead>
@@ -189,12 +227,15 @@ export default function Dashboard() {
               ) : (
                 stats.transactions.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 text-xs">
-                      {format(parseISO(t.date), 'dd MMM, yyyy', { locale: ptBR })}
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 text-xs text-center">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-gray-700">{format(parseISO(t.date), 'dd', { locale: ptBR })}</span>
+                        <span className="text-[10px] uppercase">{format(parseISO(t.date), 'MMM', { locale: ptBR })}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 font-medium text-gray-900">
                       {t.description}
-                      {t.is_installment && <span className="ml-2 text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">Parcelado</span>}
+                      {t.is_installment && <span className="ml-2 text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase font-bold">Parcelado</span>}
                     </td>
                     <td className="px-6 py-4">
                        <div className="flex flex-col">
@@ -203,9 +244,15 @@ export default function Dashboard() {
                        </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
-                        {t.payer}
-                      </span>
+                       <div className="flex justify-center">
+                          <img 
+                            src={avatars[t.payer]} 
+                            alt={t.payer} 
+                            className="w-8 h-8 rounded-full object-cover border border-white shadow-sm"
+                            title={t.payer}
+                            onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${t.payer}&background=random`; }}
+                          />
+                       </div>
                     </td>
                     <td className={`px-6 py-4 text-right font-bold whitespace-nowrap ${t.type === 'income' ? 'text-success' : 'text-gray-900'}`}>
                       {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
